@@ -1,5 +1,8 @@
 name: Build Android APK
-on: [push, workflow_dispatch]
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: write
 jobs:
@@ -19,7 +22,10 @@ jobs:
           name: OnePlus-AutoInstaller-debug
           path: app/build/outputs/apk/debug/*.apk
       - name: Publish APK to build branch
+        shell: bash
         run: |
+          trap 'echo "::error::publish failed at line $LINENO"' ERR
+          set -x
           cp app/build/outputs/apk/debug/*.apk /tmp/OnePlus-AutoInstaller.apk
           git config user.name 'github-actions[bot]'
           git config user.email <1898282+github-actions[bot]@users.noreply.github.com'

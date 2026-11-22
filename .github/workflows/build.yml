@@ -11,7 +11,7 @@ jobs:
           gradle-version: '8.10.2'
       - run: |
           set -o pipefail
-          gradle --no-daemon assembleDebug 2>&1 | tee /tmp/build-output || { tail -60 /tmp/build-output | while IFS= read -r line; do echo "::error::$line"; done; exit 1; }
+          gradle --no-daemon assembleDebug 2>&1 | tee /tmp/build-output || { echo "::error::$(tail -50 /tmp/build-output | sed ":a;N;\$!ba;s/\n/%0A/g")"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: OnePlus-AutoInstaller-debug

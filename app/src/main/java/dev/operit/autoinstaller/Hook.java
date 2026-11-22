@@ -16,13 +16,33 @@ public final class Hook implements IXposedHookLoadPackage {
         if (!"com.android.packageinstaller".equals(p.packageName)) return;
         try {
             Class<?> install = XposedHelpers.findClass("com.android.packageinstaller.oplus.OPlusPackageInstallerActivity", p.classLoader);
+            // Skip the vendor AppDetail detour once the APK has been parsed and staged.
+            XposedHelpers.findAndHookMethod(install, "f3", new XC_MethodHook() {
+                @Override protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        XposedBridge.log("AutoInstaller: bypass AppDetail");
+                        XposedHelpers.callMethod(p.thisObject, "z3");
+                        p.setResult(null);
+                    } catch (Throwable e) { XposedBridge.log(e); }
+                }
+            });
+            // t2 normally launches the vendor scan. Advance to the confirmation setup.
+            XposedHelpers.findAndHookMethod(install, "t2", new XC_MethodHook() {
+                @Override protected void beforeHookedMethod(MethodHookParam p) {
+                    try {
+                        XposedBridge.log("AutoInstaller: bypass vendor scan");
+                        XposedHelpers.callMethod(p.thisObject, "O2");
+                        p.setResult(null);
+                    } catch (Throwable e) { XposedBridge.log(e); }
+                }
+            });
             XposedHelpers.findAndHookMethod(install, "y3", new XC_MethodHook() {
                 @Override protected void afterHookedMethod(MethodHookParam p) {
                     final Activity activity = (Activity) p.thisObject;
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override public void run() {
                             if (activity.isFinishing()) return;
-                            try { XposedHelpers.callMethod(activity, "x3"); }
+                            try { XposedBridge.log("AutoInstaller: start install"); XposedHelpers.callMethod(activity, "x3"); }
                             catch (Throwable e) { XposedBridge.log(e); }
                         }
                     });

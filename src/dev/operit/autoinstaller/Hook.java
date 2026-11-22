@@ -15,6 +15,17 @@ public final class Hook implements IXposedHookLoadPackage {
     @Override public void handleLoadPackage(XC_LoadPackage.LoadPackageParam p) {
         if (!"com.android.packageinstaller".equals(p.packageName)) return;
         try {
+            // InstallStart redirects directly to AppDetail before the installer activity.
+            // Suppress only resolution of its INSTALL entrance, not its uninstall path.
+            Class<?> redirect = XposedHelpers.findClass("m1.c", p.classLoader);
+            XposedHelpers.findAndHookMethod(redirect, "h", android.content.Context.class, boolean.class, new XC_MethodHook() {
+                @Override protected void beforeHookedMethod(MethodHookParam p) {
+                    if (Boolean.TRUE.equals(p.args[1])) {
+                        XposedBridge.log("AutoInstaller: skip decoupled AppDetail entrance");
+                        p.setResult(null);
+                    }
+                }
+            });
             Class<?> install = XposedHelpers.findClass("com.android.packageinstaller.oplus.OPlusPackageInstallerActivity", p.classLoader);
             // Skip the vendor AppDetail detour once the APK has been parsed and staged.
             XposedHelpers.findAndHookMethod(install, "f3", new XC_MethodHook() {
